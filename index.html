@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資産運用マネージャー</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>資産運用マネージャー</h1>
+        <nav>
+            <button class="nav-btn active" data-view="dashboard">ダッシュボード</button>
+            <button class="nav-btn" data-view="assets">資産一覧</button>
+            <button class="nav-btn" data-view="history">推移</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- ダッシュボード -->
+        <section id="view-dashboard" class="view active">
+            <div class="summary-cards">
+                <div class="card total-card">
+                    <span class="card-label">総資産額</span>
+                    <span class="card-value" id="total-assets">¥0</span>
+                </div>
+                <div class="card">
+                    <span class="card-label">前月比</span>
+                    <span class="card-value" id="monthly-change">-</span>
+                </div>
+                <div class="card">
+                    <span class="card-label">資産数</span>
+                    <span class="card-value" id="asset-count">0</span>
+                </div>
+            </div>
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h2>資産配分</h2>
+                    <canvas id="allocation-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h2>カテゴリ別資産額</h2>
+                    <canvas id="category-bar-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- 資産一覧 -->
+        <section id="view-assets" class="view">
+            <div class="assets-header">
+                <h2>資産一覧</h2>
+                <button class="btn-primary" id="btn-add-asset">＋ 資産を追加</button>
+            </div>
+            <div class="filter-bar">
+                <select id="filter-category">
+                    <option value="all">すべてのカテゴリ</option>
+                    <option value="stock">株式</option>
+                    <option value="bond">債券</option>
+                    <option value="cash">現金・預金</option>
+                    <option value="realestate">不動産</option>
+                    <option value="crypto">暗号資産</option>
+                    <option value="fund">投資信託</option>
+                    <option value="other">その他</option>
+                </select>
+                <select id="sort-by">
+                    <option value="value-desc">金額（高い順）</option>
+                    <option value="value-asc">金額（低い順）</option>
+                    <option value="name-asc">名前（昇順）</option>
+                    <option value="date-desc">登録日（新しい順）</option>
+                </select>
+            </div>
+            <div id="assets-list" class="assets-list">
+                <p class="empty-message">資産が登録されていません。「資産を追加」ボタンから追加してください。</p>
+            </div>
+        </section>
+
+        <!-- 推移 -->
+        <section id="view-history" class="view">
+            <div class="assets-header">
+                <h2>資産推移</h2>
+                <button class="btn-primary" id="btn-snapshot">現在の資産を記録</button>
+            </div>
+            <div class="chart-container chart-wide">
+                <canvas id="history-chart"></canvas>
+            </div>
+            <div id="history-list" class="history-list"></div>
+        </section>
+    </main>
+
+    <!-- 資産追加・編集モーダル -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">資産を追加</h2>
+                <button class="modal-close" id="btn-modal-close">&times;</button>
+            </div>
+            <form id="asset-form">
+                <input type="hidden" id="asset-id">
+                <div class="form-group">
+                    <label for="asset-name">資産名 <span class="required">*</span></label>
+                    <input type="text" id="asset-name" required placeholder="例：トヨタ自動車 株式">
+                </div>
+                <div class="form-group">
+                    <label for="asset-category">カテゴリ <span class="required">*</span></label>
+                    <select id="asset-category" required>
+                        <option value="">選択してください</option>
+                        <option value="stock">株式</option>
+                        <option value="bond">債券</option>
+                        <option value="cash">現金・預金</option>
+                        <option value="realestate">不動産</option>
+                        <option value="crypto">暗号資産</option>
+                        <option value="fund">投資信託</option>
+                        <option value="other">その他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="asset-value">現在の評価額（円） <span class="required">*</span></label>
+                    <input type="number" id="asset-value" required min="0" step="1" placeholder="例：1000000">
+                </div>
+                <div class="form-group">
+                    <label for="asset-cost">取得価額（円）</label>
+                    <input type="number" id="asset-cost" min="0" step="1" placeholder="例：800000">
+                </div>
+                <div class="form-group">
+                    <label for="asset-note">メモ</label>
+                    <textarea id="asset-note" rows="2" placeholder="任意のメモ"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel">キャンセル</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div id="delete-overlay" class="modal-overlay hidden">
+        <div class="modal modal-small">
+            <h2>削除の確認</h2>
+            <p id="delete-message">この資産を削除しますか？</p>
+            <div class="form-actions">
+                <button class="btn-secondary" id="btn-delete-cancel">キャンセル</button>
+                <button class="btn-danger" id="btn-delete-confirm">削除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
